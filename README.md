@@ -60,10 +60,3 @@ The dashboard falls back to realistic mock TLE data automatically
 so you can demo the UI without any backend.
 
 ---
-
-## Next steps (v0.2)
-
-- [ ] Replace simplified propagator with satellite.js (full SGP4)
-- [ ] Add real covariance from Space-Track CDM endpoint
-- [ ] Auto-refresh TLEs every 6 hours
-- [ ] Export conjunction report as PDF
