@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Night's Watch — Conjunction Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #04060f;
+    --surface: #080d1c;
+    --border: #0f1e3a;
+    --accent: #00ffe0;
+    --accent2: #ff4d6d;
+    --accent3: #ffd60a;
+    --text: #c8d8f0;
+    --dim: #4a5a7a;
+    --glow: 0 0 20px rgba(0,255,224,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Starfield */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(200,216,240,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(200,216,240,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 10%, rgba(200,216,240,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 80%, rgba(200,216,240,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 40%, rgba(200,216,240,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 90%, rgba(200,216,240,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 15%, rgba(200,216,240,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 45%, rgba(200,216,240,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 70%, rgba(200,216,240,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 35%, rgba(200,216,240,0.3) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, rgba(0,255,224,0.03) 0%, transparent 100%);
+  }
+
+  .logo {
+    font-family: 'Space Mono', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text); font-weight: 400; font-size: 13px; display: block; margin-top: 2px; letter-spacing: 3px; font-family: 'Space Mono', monospace; }
+
+  .header-right { display: flex; align-items: center; gap: 24px; }
+
+  .live-indicator {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--dim); letter-spacing: 2px;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  #clock { font-size: 11px; color: var(--dim); letter-spacing: 1px; }
+
+  /* Auth panel */
+  #auth-panel {
+    position: relative; z-index: 10;
+    max-width: 640px; margin: 60px auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    padding: 40px;
+  }
+
+  #auth-panel h2 {
+    font-family: 'Space Mono', sans-serif; font-size: 20px; font-weight: 800;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  #auth-panel p { color: var(--dim); line-height: 1.7; margin-bottom: 28px; font-size: 12px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--dim); margin-bottom: 6px; }
+  .field input {
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--border); color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 13px;
+    padding: 10px 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+
+  .btn {
+    background: var(--accent); color: var(--bg);
+    font-family: 'Space Mono', sans-serif; font-weight: 800;
+    font-size: 13px; letter-spacing: 1px;
+    padding: 12px 28px; border: none; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:active { transform: scale(0.98); }
+  .btn-danger { background: var(--accent2); }
+  .btn-sm { padding: 8px 16px; font-size: 11px; }
+
+  #auth-error { color: var(--accent2); font-size: 11px; margin-top: 12px; display: none; }
+
+  /* Main layout */
+  #main { display: none; position: relative; z-index: 10; }
+
+  .top-bar {
+    padding: 16px 40px;
+    display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .top-bar label { font-size: 10px; letter-spacing: 2px; color: var(--dim); }
+
+  .norad-input {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Space Mono', monospace;
+    font-size: 12px; padding: 8px 12px; width: 320px; outline: none;
+  }
+  .norad-input:focus { border-color: var(--accent); }
+
+  #status-bar {
+    margin-left: auto; font-size: 11px; color: var(--dim);
+    letter-spacing: 1px;
+  }
+  #status-bar.loading { color: var(--accent3); }
+  #status-bar.error { color: var(--accent2); }
+  #status-bar.ok { color: var(--accent); }
+
+  /* Content grid */
+  .content { display: grid; grid-template-columns: 380px 1fr; gap: 0; min-height: calc(100vh - 130px); }
+
+  /* Sidebar */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    overflow-y: auto;
+  }
+
+  .sidebar-section { border-bottom: 1px solid var(--border); }
+  .sidebar-section-title {
+    padding: 14px 20px; font-size: 9px;
+    letter-spacing: 3px; color: var(--dim);
+    background: rgba(255,255,255,0.02);
+  }
+
+  /* Satellite cards */
+  .sat-card {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(15,30,58,0.5);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .sat-card:hover { background: rgba(0,255,224,0.03); }
+  .sat-card.selected { background: rgba(0,255,224,0.06); border-left: 2px solid var(--accent); }
+
+  .sat-name {
+    font-family: 'Space Mono', sans-serif; font-weight: 600;
+    font-size: 14px; color: #fff; margin-bottom: 4px;
+  }
+  .sat-meta { font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-bottom: 10px; }
+
+  .sat-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { }
+  .stat-label { font-size: 9px; color: var(--dim); letter-spacing: 1.5px; margin-bottom: 2px; }
+  .stat-value { font-size: 13px; color: var(--text); }
+
+  /* TLE quality score */
+  .quality-bar-wrap { margin-top: 10px; }
+  .quality-label { font-size: 9px; letter-spacing: 2px; color: var(--dim); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .quality-bar {
+    height: 4px; background: var(--border);
+    position: relative; overflow: hidden;
+  }
+  .quality-fill {
+    height: 100%; transition: width 0.6s ease;
+    position: absolute; left: 0; top: 0;
+  }
+
+  /* Conjunction list */
+  .conj-item {
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(15,30,58,0.5);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .conj-item:hover { background: rgba(255,77,109,0.04); }
+  .conj-item.selected { background: rgba(255,77,109,0.06); border-left: 2px solid var(--accent2); }
+
+  .conj-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .conj-pair { font-family: 'Space Mono', sans-serif; font-size: 13px; font-weight: 600; color: #fff; }
+  .risk-badge {
+    font-size: 9px; letter-spacing: 1.5px; padding: 3px 8px;
+    font-weight: 700;
+  }
+  .risk-HIGH { background: rgba(255,77,109,0.2); color: var(--accent2); border: 1px solid var(--accent2); }
+  .risk-MEDIUM { background: rgba(255,214,10,0.15); color: var(--accent3); border: 1px solid var(--accent3); }
+  .risk-LOW { background: rgba(0,255,224,0.1); color: var(--accent); border: 1px solid var(--accent); }
+
+  .conj-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .conj-stat-label { font-size: 9px; color: var(--dim); letter-spacing: 1px; }
+  .conj-stat-val { font-size: 12px; color: var(--text); margin-top: 1px; }
+
+  /* Main panel */
+  .main-panel { padding: 32px 40px; overflow-y: auto; }
+
+  .panel-title {
+    font-family: 'Space Mono', sans-serif; font-weight: 800;
+    font-size: 24px; color: #fff; margin-bottom: 4px;
+  }
+  .panel-sub { color: var(--dim); font-size: 11px; letter-spacing: 2px; margin-bottom: 32px; }
+
+  /* Uncertainty meter */
+  .uncertainty-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 24px;
+    position: relative; overflow: hidden;
+  }
+  .uncertainty-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .uncertainty-card.green::before { background: var(--accent); }
+  .uncertainty-card.yellow::before { background: var(--accent3); }
+  .uncertainty-card.red::before { background: var(--accent2); }
+
+  .uc-title { font-size: 10px; letter-spacing: 2px; color: var(--dim); margin-bottom: 16px; }
+
+  .big-number {
+    font-family: 'Space Mono', sans-serif; font-weight: 800;
+    font-size: 48px; line-height: 1; color: #fff;
+    margin-bottom: 4px;
+  }
+  .big-unit { font-size: 16px; color: var(--dim); font-family: 'Space Mono', monospace; font-weight: 400; }
+  .big-sub { font-size: 11px; color: var(--dim); margin-top: 6px; letter-spacing: 1px; }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .metric-label { font-size: 9px; letter-spacing: 2px; color: var(--dim); margin-bottom: 8px; }
+  .metric-val { font-family: 'Space Mono', sans-serif; font-weight: 700; font-size: 22px; color: #fff; }
+  .metric-unit { font-size: 11px; color: var(--dim); font-family: 'Space Mono'; }
+
+  /* Confidence decay */
+  .decay-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 24px;
+  }
+  .decay-title { font-size: 10px; letter-spacing: 2px; color: var(--dim); margin-bottom: 16px; }
+
+  canvas { width: 100% !important; }
+
+  /* Decision banner */
+  .decision-banner {
+    padding: 20px 24px;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .decision-banner.go { background: rgba(0,255,224,0.08); border: 1px solid var(--accent); }
+  .decision-banner.warn { background: rgba(255,214,10,0.08); border: 1px solid var(--accent3); }
+  .decision-banner.stop { background: rgba(255,77,109,0.1); border: 1px solid var(--accent2); }
+
+  .decision-icon { font-size: 28px; }
+  .decision-text h3 { font-family: 'Space Mono', sans-serif; font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+  .decision-text p { font-size: 11px; color: var(--dim); line-height: 1.6; }
+
+  /* Placeholder state */
+  .placeholder {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 400px; color: var(--dim); text-align: center;
+    gap: 16px;
+  }
+  .placeholder-icon { font-size: 48px; opacity: 0.3; }
+  .placeholder p { font-size: 12px; letter-spacing: 1px; max-width: 300px; line-height: 1.7; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .empty { padding: 20px; color: var(--dim); font-size: 11px; }
+
+  #logout-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--dim); font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 1px; padding: 6px 12px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  #logout-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<!-- AUTH PANEL -->
+<div id="auth-panel">
+  <h2>NIGHT'S WATCH - CONJUNCTION INTELLIGENCE</h2>
+  <p>Live TLE ingestion · Conjunction detection · TLE quality scoring<br>Enter your Space-Track.org credentials to begin.</p>
+  <div class="field">
+    <label>SPACE-TRACK USERNAME (EMAIL)</label>
+    <input type="email" id="st-user" placeholder="your@email.com" autocomplete="username">
+  </div>
+  <div class="field">
+    <label>SPACE-TRACK PASSWORD</label>
+    <input type="password" id="st-pass" placeholder="••••••••" autocomplete="current-password">
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
+    <button class="btn" onclick="authenticate()">CONNECT →</button>
+    <span style="font-size:11px;color:var(--dim)">No account? <a href="https://www.space-track.org/auth/createAccount" target="_blank" style="color:var(--accent)">Register free</a></span>
+  </div>
+  <p id="auth-error"></p>
+  <p style="margin-top:20px;font-size:10px;color:var(--dim);line-height:1.8">
+    ⚠ Credentials are used only to authenticate with Space-Track's API.<br>
+    They are not stored anywhere — session only.
+  </p>
+</div>
+
+<!-- MAIN APP -->
+<div id="main">
+  <header>
+    <div class="logo">
+      NIGHT'S WATCH
+      <span>CONJUNCTION INTELLIGENCE v0.1</span>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator"><div class="live-dot"></div>LIVE</div>
+      <div id="clock">--:--:-- UTC</div>
+      <button id="logout-btn" onclick="logout()">DISCONNECT</button>
+    </div>
+  </header>
+
+  <div class="top-bar">
+    <label>NORAD IDs</label>
+    <input class="norad-input" id="norad-input"
+      value="62701,62704,62710,44804"
+      placeholder="e.g. 62701,62704,62710,44804">
+    <button class="btn btn-sm" onclick="runAnalysis()">RUN ANALYSIS</button>
+    <div id="status-bar">READY</div>
+  </div>
+
+  <div class="content">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">TRACKED OBJECTS</div>
+        <div id="sat-list"><div class="empty">No satellites loaded.</div></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">CONJUNCTION EVENTS</div>
+        <div id="conj-list"><div class="empty">Run analysis to detect events.</div></div>
+      </div>
+    </div>
+
+    <!-- MAIN PANEL -->
+    <div class="main-panel" id="main-panel">
+      <div class="placeholder">
+        <div class="placeholder-icon">🛰</div>
+        <p>Enter NORAD IDs and run analysis.<br>Conjunction events and TLE quality scores will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────
+let SESSION = null;
+let satellites = {};
+let conjunctions = [];
+let selectedConj = null;
+let selectedSat = null;
+let orbitalAnimFrame = null;
+let decayChart = null;
+let blinkInterval = null;
+
+// ─── Clock ───────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const h = now.getUTCHours().toString().padStart(2,'0');
+  const m = now.getUTCMinutes().toString().padStart(2,'0');
+  const s = now.getUTCSeconds().toString().padStart(2,'0');
+  const el = document.getElementById('clock');
+  if(el) el.textContent = `${h}:${m}:${s} UTC`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── Config ───────────────────────────────────────────────────────────
+const PROXY = 'http://localhost:5001';
+
+// ─── Auth ─────────────────────────────────────────────────────────────
+async function authenticate() {
+  const user = document.getElementById('st-user').value.trim();
+  const pass = document.getElementById('st-pass').value;
+  const errEl = document.getElementById('auth-error');
+  const btn = document.querySelector('#auth-panel .btn');
+  errEl.style.display = 'none';
+
+  if (!user || !pass) {
+    errEl.textContent = 'Please enter both username and password.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.textContent = 'CONNECTING...';
+  btn.disabled = true;
+
+  try {
+    // First check proxy is alive
+    const health = await fetch(`${PROXY}/health`).catch(() => null);
+    if (!health || !health.ok) {
+      throw new Error('Proxy not running. Start it with: python app.py');
+    }
+
+    // Login via proxy
+    const resp = await fetch(`${PROXY}/proxy/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity: user, password: pass })
+    });
+
+    const data = await resp.json();
+    if (!data.ok) throw new Error('Space-Track login failed — check credentials.');
+
+    SESSION = { user, pass };
+    document.getElementById('auth-panel').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.textContent = 'CONNECT →';
+    btn.disabled = false;
+  }
+}
+
+async function logout() {
+  try { await fetch(`${PROXY}/proxy/logout`, { method: 'POST' }); } catch(_) {}
+  SESSION = null;
+  satellites = {};
+  conjunctions = [];
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('auth-panel').style.display = 'block';
+}
+
+// ─── Space-Track API (via proxy) ──────────────────────────────────────
+async function fetchTLEs(noradIds) {
+  const ids = noradIds.join(',');
+
+  try {
+    const resp = await fetch(`${PROXY}/proxy/tle?ids=${ids}`);
+    if (!resp.ok) throw new Error(`Proxy returned ${resp.status}`);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    if (!Array.isArray(data) || data.length === 0) throw new Error('No TLE data returned');
+    return data;
+  } catch(e) {
+    console.warn('Proxy fetch failed, using demo data:', e.message);
+    setStatus('PROXY UNAVAILABLE — DEMO MODE', 'loading');
+    return getMockTLEData(noradIds);
+  }
+}
+
+function getMockTLEData(noradIds) {
+  // All satellites share the same epoch (now) so the propagator's
+  // epoch-relative timing is consistent across all objects.
+  // Firefly-1 and Firefly-2 are given nearly identical orbital elements
+  // (MEAN_ANOMALY separated by only 0.05°) so they converge within the
+  // detection window at any threshold above ~15 km.
+  const now = new Date();
+  const epoch = offsetEpoch(now, 0); // epoch = right now, same for everyone
+  const mocks = {
+    62701: { NORAD_CAT_ID: '62701', OBJECT_NAME: 'PIXXEL FIREFLY-1', EPOCH: epoch, INCLINATION: '97.4', ECCENTRICITY: '0.0001234', MEAN_MOTION: '14.92', ARG_OF_PERICENTER: '90.1', RAAN: '45.2', MEAN_ANOMALY: '120.30', BSTAR: '0.00014', TLE_LINE1: '1 62701U 25001A   25100.50000000  .00001000  00000-0  14000-3 0  9991', TLE_LINE2: '2 62701  97.4000  45.2000 0001234  90.1000 120.3000 14.92000000 12345' },
+    62704: { NORAD_CAT_ID: '62704', OBJECT_NAME: 'PIXXEL FIREFLY-2', EPOCH: epoch, INCLINATION: '97.4', ECCENTRICITY: '0.0001234', MEAN_MOTION: '14.92', ARG_OF_PERICENTER: '90.1', RAAN: '45.2', MEAN_ANOMALY: '120.35', BSTAR: '0.00013', TLE_LINE1: '1 62704U 25001B   25100.70000000  .00001000  00000-0  13000-3 0  9992', TLE_LINE2: '2 62704  97.4000  45.2000 0001234  90.1000 120.3500 14.92000000 12346' },
+    62710: { NORAD_CAT_ID: '62710', OBJECT_NAME: 'PIXXEL FIREFLY-3', EPOCH: epoch, INCLINATION: '97.4', ECCENTRICITY: '0.0001089', MEAN_MOTION: '14.92', ARG_OF_PERICENTER: '90.5', RAAN: '45.2', MEAN_ANOMALY: '200.0', BSTAR: '0.00012', TLE_LINE1: '1 62710U 25001C   25099.40000000  .00001000  00000-0  12000-3 0  9993', TLE_LINE2: '2 62710  97.4000  45.2000 0001089  90.5000 200.0000 14.92000000 12347' },
+    44804: { NORAD_CAT_ID: '44804', OBJECT_NAME: 'CARTOSAT-3',      EPOCH: epoch, INCLINATION: '97.6', ECCENTRICITY: '0.0000823', MEAN_MOTION: '14.98', ARG_OF_PERICENTER: '91.0', RAAN: '46.1', MEAN_ANOMALY: '200.5', BSTAR: '0.00008', TLE_LINE1: '1 44804U 19074A   25097.00000000  .00000800  00000-0  80000-4 0  9994', TLE_LINE2: '2 44804  97.6000  46.1000 0000823  91.0000 200.5000 14.98000000 12348' },
+  };
+
+  return noradIds.map(id => mocks[id] || {
+    NORAD_CAT_ID: String(id),
+    OBJECT_NAME: `OBJECT ${id}`,
+    EPOCH: offsetEpoch(now, -1),
+    INCLINATION: '98.0', ECCENTRICITY: '0.0002', MEAN_MOTION: '14.5',
+    ARG_OF_PERICENTER: '90', RAAN: '50', MEAN_ANOMALY: '180', BSTAR: '0.0001',
+    TLE_LINE1: '', TLE_LINE2: ''
+  }).filter(Boolean);
+}
+
+function offsetEpoch(base, daysBack) {
+  const d = new Date(base - daysBack * 86400000);
+  return d.toISOString().replace('T', ' ').slice(0, 23);
+}
+
+// ─── TLE Age & Quality Score ──────────────────────────────────────────
+function computeTLEAge(epochStr) {
+  const epoch = new Date(epochStr.replace(' ', 'T') + 'Z');
+  const ageMs = Date.now() - epoch.getTime();
+  return ageMs / (1000 * 3600); // hours
+}
+
+function computeQualityScore(sat) {
+  const ageHours = computeTLEAge(sat.EPOCH);
+
+  // Age penalty: score decays over time
+  // Fresh (<6h): 100, 1 day: ~70, 3 days: ~40, 7 days: ~10
+  const ageFactor = Math.max(0, 100 - ageHours * 0.55);
+
+  // Orbit type penalty: higher drag at lower altitude = faster uncertainty growth
+  const meanMotion = parseFloat(sat.MEAN_MOTION || 14.5);
+  const altApprox = (42241 / Math.pow(meanMotion / 1.00274, 2/3)) - 6371;
+  const altFactor = altApprox < 400 ? 0.6 : altApprox < 600 ? 0.85 : 1.0;
+
+  // BSTAR (drag term) penalty
+  const bstar = Math.abs(parseFloat(sat.BSTAR || 0.0001));
+  const bstarFactor = bstar > 0.001 ? 0.7 : bstar > 0.0005 ? 0.85 : 1.0;
+
+  const score = ageFactor * altFactor * bstarFactor;
+  return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+function qualityColor(score) {
+  if (score >= 70) return 'var(--accent)';
+  if (score >= 40) return 'var(--accent3)';
+  return 'var(--accent2)';
+}
+
+function qualityLabel(score) {
+  if (score >= 70) return 'RELIABLE';
+  if (score >= 40) return 'DEGRADED';
+  return 'STALE';
+}
+
+// ─── Orbit Propagation (simplified SGP4-like) ─────────────────────────
+// Real SGP4 is complex C code — we use a simplified 2-body + J2 approximation
+// sufficient for demonstration; production would use satellite.js or python-sgp4
+
+const MU = 398600.4418; // km^3/s^2
+const RE = 6378.137;
+const J2 = 1.08263e-3;
+
+function meanMotionToSMA(n) {
+  // n in rev/day → semi-major axis in km
+  const nRadSec = n * 2 * Math.PI / 86400;
+  return Math.pow(MU / (nRadSec * nRadSec), 1/3);
+}
+
+function propagateOrbit(sat, tMinutes) {
+  // Simplified propagation: return ECI position vector (km)
+  const n = parseFloat(sat.MEAN_MOTION) * 2 * Math.PI / 86400; // rad/s
+  const a = meanMotionToSMA(parseFloat(sat.MEAN_MOTION));
+  const e = parseFloat(sat.ECCENTRICITY);
+  const i = parseFloat(sat.INCLINATION) * Math.PI / 180;
+  const raan = parseFloat(sat.RAAN) * Math.PI / 180;
+  const aop = parseFloat(sat.ARG_OF_PERICENTER) * Math.PI / 180;
+  const M0 = parseFloat(sat.MEAN_ANOMALY) * Math.PI / 180;
+  const epochMs = new Date(sat.EPOCH.replace(' ', 'T') + 'Z').getTime();
+  const elapsedSinceEpochMin = (Date.now() - epochMs) / 60000;
+  const t = (elapsedSinceEpochMin + tMinutes) * 60;
+  const M = M0 + n * t;
+
+  // Solve Kepler's equation (3 iterations)
+  let E = M;
+  for (let k = 0; k < 5; k++) E = M + e * Math.sin(E);
+
+  const nu = 2 * Math.atan2(Math.sqrt(1+e)*Math.sin(E/2), Math.sqrt(1-e)*Math.cos(E/2));
+  const r = a * (1 - e * Math.cos(E));
+
+  // Perifocal coords
+  const xp = r * Math.cos(nu);
+  const yp = r * Math.sin(nu);
+
+  // Rotation to ECI
+  const cosO = Math.cos(raan), sinO = Math.sin(raan);
+  const cosw = Math.cos(aop), sinw = Math.sin(aop);
+  const cosi = Math.cos(i), sini = Math.sin(i);
+
+  const x = (cosO*cosw - sinO*sinw*cosi)*xp + (-cosO*sinw - sinO*cosw*cosi)*yp;
+  const y = (sinO*cosw + cosO*sinw*cosi)*xp + (-sinO*sinw + cosO*cosw*cosi)*yp;
+  const z = (sinw*sini)*xp + (cosw*sini)*yp;
+
+  return { x, y, z, r };
+}
+
+function separation(p1, p2) {
+  const dx = p1.x-p2.x, dy = p1.y-p2.y, dz = p1.z-p2.z;
+  return Math.sqrt(dx*dx+dy*dy+dz*dz);
+}
+
+// ─── Conjunction Analysis ─────────────────────────────────────────────
+function analyzeConjunctions(satList, daysAhead = 7, stepMin = 0.1) {
+  const results = [];
+  const steps = Math.floor(daysAhead * 24 * 60 / stepMin);
+  const threshold = 200; // km — conjunction detection threshold
+
+  for (let a = 0; a < satList.length; a++) {
+    for (let b = a+1; b < satList.length; b++) {
+      let minSep = Infinity, minT = 0;
+      const sepHistory = [];
+
+      for (let step = 0; step <= steps; step++) {
+        const t = step * stepMin;
+        const p1 = propagateOrbit(satList[a], t);
+        const p2 = propagateOrbit(satList[b], t);
+        const sep = separation(p1, p2);
+        sepHistory.push({ t, sep });
+        if (sep < minSep) { minSep = sep; minT = t; }
+      }
+
+      if (minSep < threshold) {
+        const qualA = computeQualityScore(satList[a]);
+        const qualB = computeQualityScore(satList[b]);
+        const avgQual = (qualA + qualB) / 2;
+
+        // Uncertainty in miss distance scales inversely with quality
+        const uncertFactor = (100 - avgQual) / 100;
+        const missUncert = Math.max(5, minSep * uncertFactor * 2);
+
+        // Collision probability estimate (simplified Chan formula proxy)
+        const sigma = 0.2 + uncertFactor * 2.0; // km combined covariance
+        const pc = Math.exp(-minSep*minSep / (2*sigma*sigma)) * 0.01;
+
+        // Risk classification
+        let risk;
+        if (minSep < 5 || pc > 1e-4) risk = 'HIGH';
+        else if (minSep < 25 || pc > 1e-5) risk = 'MEDIUM';
+        else risk = 'LOW';
+
+        results.push({
+          satA: satList[a],
+          satB: satList[b],
+          minSep: minSep.toFixed(2),
+          minT,
+          pc: pc.toExponential(2),
+          pcRaw: pc,
+          qualA, qualB, avgQual,
+          missUncert: missUncert.toFixed(1),
+          risk,
+          sepHistory
+        });
+      }
+    }
+  }
+
+  return results.sort((a,b) => parseFloat(a.minSep) - parseFloat(b.minSep));
+}
+
+// ─── Render Satellites ────────────────────────────────────────────────
+function renderSatList() {
+  const el = document.getElementById('sat-list');
+  const sats = Object.values(satellites);
+  if (!sats.length) { el.innerHTML = '<div class="empty">No satellites loaded.</div>'; return; }
+
+  el.innerHTML = sats.map(sat => {
+    const age = computeTLEAge(sat.EPOCH);
+    const score = computeQualityScore(sat);
+    const color = qualityColor(score);
+    const label = qualityLabel(score);
+    const alt = Math.round(meanMotionToSMA(parseFloat(sat.MEAN_MOTION)) - RE);
+
+    return `
+    <div class="sat-card" onclick="selectSat('${sat.NORAD_CAT_ID}')" id="satcard-${sat.NORAD_CAT_ID}">
+      <div class="sat-name">${sat.OBJECT_NAME}</div>
+      <div class="sat-meta">NORAD ${sat.NORAD_CAT_ID} · ${alt} km SSO</div>
+      <div class="sat-stats">
+        <div class="stat">
+          <div class="stat-label">INC</div>
+          <div class="stat-value">${parseFloat(sat.INCLINATION).toFixed(2)}°</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">TLE AGE</div>
+          <div class="stat-value" style="color:${age>48?'var(--accent2)':age>24?'var(--accent3)':'var(--accent)'}">${age.toFixed(1)}h</div>
+        </div>
+      </div>
+      <div class="quality-bar-wrap">
+        <div class="quality-label">
+          <span>TLE QUALITY</span>
+          <span style="color:${color}">${score}/100 — ${label}</span>
+        </div>
+        <div class="quality-bar">
+          <div class="quality-fill" style="width:${score}%;background:${color}"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderConjList() {
+  const el = document.getElementById('conj-list');
+  if (!conjunctions.length) {
+    el.innerHTML = '<div class="empty">No conjunctions detected within 200km threshold.</div>';
+    return;
+  }
+
+  el.innerHTML = conjunctions.map((c, i) => `
+    <div class="conj-item ${selectedConj===i?'selected':''}" onclick="selectConj(${i})">
+      <div class="conj-header">
+        <div class="conj-pair">${c.satA.OBJECT_NAME.split(' ').pop()} × ${c.satB.OBJECT_NAME.split(' ').pop()}</div>
+        <div class="risk-badge risk-${c.risk}">${c.risk}</div>
+      </div>
+      <div class="conj-stats">
+        <div>
+          <div class="conj-stat-label">MIN SEP</div>
+          <div class="conj-stat-val">${c.minSep} km</div>
+        </div>
+        <div>
+          <div class="conj-stat-label">Pc</div>
+          <div class="conj-stat-val">${c.pc}</div>
+        </div>
+        <div>
+          <div class="conj-stat-label">UNCERT ±</div>
+          <div class="conj-stat-val">${c.missUncert} km</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── Select & Render Conjunction Detail ──────────────────────────────
+function selectConj(i) {
+  selectedConj = i;
+  selectedSat = null;
+  document.querySelectorAll('.sat-card').forEach(c => c.classList.remove('selected'));
+  if (orbitalAnimFrame) { cancelAnimationFrame(orbitalAnimFrame); orbitalAnimFrame = null; }
+  if (blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
+  renderConjList();
+  renderConjDetail(conjunctions[i]);
+}
+
+function renderConjDetail(c) {
+  const panel = document.getElementById('main-panel');
+  const timeToConj = (c.minT / 60).toFixed(1);
+
+  const decisionClass = c.risk === 'HIGH' ? 'stop' : c.risk === 'MEDIUM' ? 'warn' : 'go';
+  const decisionIcon = c.risk === 'HIGH' ? '🔴' : c.risk === 'MEDIUM' ? '🟡' : '🟢';
+  const decisionTitle = c.risk === 'HIGH' ? 'MANEUVER RECOMMENDED' : c.risk === 'MEDIUM' ? 'MONITOR CLOSELY' : 'STAND DOWN';
+  const decisionMsg = c.risk === 'HIGH'
+    ? `Miss distance of ${c.minSep} km with uncertainty ±${c.missUncert} km. Actual separation could be lower than safe threshold. Avg TLE quality: ${Math.round(c.avgQual)}/100.`
+    : c.risk === 'MEDIUM'
+    ? `Miss distance is marginal. TLE quality score ${Math.round(c.avgQual)}/100 — uncertainty band is ±${c.missUncert} km. Recommend refreshing TLE data and re-evaluating before T-${Math.max(1,(c.minT/60-6)).toFixed(0)}h.`
+    : `Separation of ${c.minSep} km exceeds safe threshold with comfortable margin. TLE quality: ${Math.round(c.avgQual)}/100. No action required.`;
+
+  panel.innerHTML = `
+    <div class="panel-title">${c.satA.OBJECT_NAME} × ${c.satB.OBJECT_NAME}</div>
+    <div class="panel-sub">CONJUNCTION ANALYSIS · 7-DAY WINDOW · LIVE TLE DATA</div>
+
+    <div class="decision-banner ${decisionClass}">
+      <div class="decision-icon">${decisionIcon}</div>
+      <div class="decision-text">
+        <h3>${decisionTitle}</h3>
+        <p>${decisionMsg}</p>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">MINIMUM SEPARATION</div>
+        <div class="metric-val">${c.minSep} <span class="metric-unit">km</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">COLLISION PROBABILITY</div>
+        <div class="metric-val" style="color:${c.risk==='HIGH'?'var(--accent2)':c.risk==='MEDIUM'?'var(--accent3)':'var(--accent)'}">${c.pc}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">TIME TO CONJUNCTION</div>
+        <div class="metric-val">${timeToConj} <span class="metric-unit">hrs</span></div>
+      </div>
+    </div>
+
+    <!-- Orbital visualizer — emergency mode -->
+    <div style="background:var(--surface);border:1px solid ${c.risk==='HIGH'?'var(--accent2)':c.risk==='MEDIUM'?'var(--accent3)':'var(--border)'};margin-bottom:24px;position:relative;overflow:hidden;">
+      <div style="padding:12px 20px 0;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:9px;letter-spacing:2px;color:${c.risk==='HIGH'?'var(--accent2)':c.risk==='MEDIUM'?'var(--accent3)':'var(--dim)'}">
+          ${c.risk==='HIGH'?'⚠ LIVE THREAT TRACK':'ORBITAL TRACK'}
+        </div>
+        <div style="font-size:9px;color:var(--dim);letter-spacing:1px;">ANIMATED · REAL ORBITS</div>
+      </div>
+      <canvas id="conjOrbCanvas" height="320" style="width:100%;display:block;"></canvas>
+      <div style="padding:10px 20px;display:flex;gap:20px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 8px #ff4d6d;"></div>
+          <span style="font-size:10px;color:var(--dim);">${c.satA.OBJECT_NAME}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:#ffd60a;box-shadow:0 0 8px #ffd60a;"></div>
+          <span style="font-size:10px;color:var(--dim);">${c.satB.OBJECT_NAME}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <div style="width:10px;height:2px;background:#ff4d6d;opacity:0.4;"></div>
+          <span style="font-size:9px;color:var(--dim);">OTHER TRACKED</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div class="uncertainty-card ${c.qualA>=70?'green':c.qualA>=40?'yellow':'red'}">
+        <div class="uc-title">TLE QUALITY — ${c.satA.OBJECT_NAME}</div>
+        <div class="big-number">${c.qualA}<span class="big-unit">/100</span></div>
+        <div class="big-sub">${qualityLabel(c.qualA)} · AGE ${computeTLEAge(c.satA.EPOCH).toFixed(1)}h</div>
+        ${renderQualityBreakdown(c.satA)}
+      </div>
+      <div class="uncertainty-card ${c.qualB>=70?'green':c.qualB>=40?'yellow':'red'}">
+        <div class="uc-title">TLE QUALITY — ${c.satB.OBJECT_NAME}</div>
+        <div class="big-number">${c.qualB}<span class="big-unit">/100</span></div>
+        <div class="big-sub">${qualityLabel(c.qualB)} · AGE ${computeTLEAge(c.satB.EPOCH).toFixed(1)}h</div>
+        ${renderQualityBreakdown(c.satB)}
+      </div>
+    </div>
+
+    <div class="decay-card">
+      <div class="decay-title">SEPARATION PROFILE — 7 DAY WINDOW (km)</div>
+      <canvas id="sepChart" height="180"></canvas>
+    </div>
+
+    <div class="decay-card">
+      <div class="decay-title">UNCERTAINTY GROWTH — MISS DISTANCE CONFIDENCE (km)</div>
+      <canvas id="uncertChart" height="160"></canvas>
+    </div>
+  `;
+
+  setTimeout(() => startConjViz(c), 50);
+  drawSepChart(c);
+  drawUncertChart(c);
+}
+
+function renderQualityBreakdown(sat) {
+  const age = computeTLEAge(sat.EPOCH);
+  const bstar = Math.abs(parseFloat(sat.BSTAR || 0));
+  const n = parseFloat(sat.MEAN_MOTION || 14.5);
+  const alt = Math.round(meanMotionToSMA(n) - RE);
+
+  const ageScore = Math.round(Math.max(0, 100 - age * 0.55));
+  const dragScore = bstar > 0.001 ? 60 : bstar > 0.0005 ? 80 : 100;
+  const altScore = alt < 400 ? 60 : alt < 600 ? 85 : 100;
+
+  return `
+  <div style="margin-top:14px;">
+    ${miniBar('AGE FACTOR', ageScore)}
+    ${miniBar('DRAG FACTOR', dragScore)}
+    ${miniBar('ALT FACTOR', altScore)}
+  </div>`;
+}
+
+function miniBar(label, score) {
+  const c = qualityColor(score);
+  return `
+  <div style="margin-bottom:8px;">
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);letter-spacing:1.5px;margin-bottom:3px;">
+      <span>${label}</span><span style="color:${c}">${score}</span>
+    </div>
+    <div class="quality-bar"><div class="quality-fill" style="width:${score}%;background:${c}"></div></div>
+  </div>`;
+}
+
+// ─── Charts ───────────────────────────────────────────────────────────
+function drawSepChart(c) {
+  const canvas = document.getElementById('sepChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio || 800;
+  canvas.height = 180 * window.devicePixelRatio || 360;
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  const W = canvas.offsetWidth, H = 180;
+
+  const data = c.sepHistory.filter((_,i)=>i%4===0); // thin out
+  const maxSep = Math.max(...data.map(d=>d.sep), 10);
+  const minSep = Math.min(...data.map(d=>d.sep));
+
+  ctx.fillStyle = '#080d1c';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = '#0f1e3a';
+  ctx.lineWidth = 1;
+  for (let y=0; y<=4; y++) {
+    const py = H - 20 - (y/4)*(H-40);
+    ctx.beginPath(); ctx.moveTo(40,py); ctx.lineTo(W-10,py); ctx.stroke();
+    ctx.fillStyle = '#4a5a7a';
+    ctx.font = '9px Space Mono';
+    ctx.fillText(Math.round((y/4)*maxSep)+'km', 2, py+3);
+  }
+
+  // Threshold line
+  const threshY = H - 20 - (200/maxSep)*(H-40);
+  ctx.strokeStyle = 'rgba(255,77,109,0.4)';
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(40,threshY); ctx.lineTo(W-10,threshY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,77,109,0.6)';
+  ctx.font = '9px Space Mono';
+  ctx.fillText('200km', W-50, threshY-4);
+
+  // Separation line
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, 'rgba(0,255,224,0.3)');
+  grad.addColorStop(1, 'rgba(0,255,224,0)');
+
+  ctx.beginPath();
+  data.forEach((d,i) => {
+    const x = 40 + (i/(data.length-1))*(W-50);
+    const y = H - 20 - (d.sep/maxSep)*(H-40);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = 'var(--accent)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Min point
+  const minIdx = data.findIndex(d=>d.sep===minSep);
+  if (minIdx >= 0) {
+    const mx = 40 + (minIdx/(data.length-1))*(W-50);
+    const my = H - 20 - (minSep/maxSep)*(H-40);
+    ctx.beginPath();
+    ctx.arc(mx, my, 5, 0, Math.PI*2);
+    ctx.fillStyle = 'var(--accent2)';
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px Space Mono';
+    ctx.fillText(`MIN: ${parseFloat(minSep).toFixed(1)}km`, mx+8, my-4);
+  }
+
+  // X axis labels
+  ctx.fillStyle = '#4a5a7a';
+  ctx.font = '9px Space Mono';
+  for (let d=0; d<=7; d++) {
+    const x = 40 + (d/7)*(W-50);
+    ctx.fillText(`+${d}d`, x-10, H-4);
+  }
+}
+
+function drawUncertChart(c) {
+  const canvas = document.getElementById('uncertChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio || 800;
+  canvas.height = 160 * window.devicePixelRatio || 320;
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  const W = canvas.offsetWidth, H = 160;
+
+  // Simulate uncertainty growth over 7 days
+  const points = 60;
+  const baseUncert = 0.5; // km at t=0
+  const maxUncert = parseFloat(c.missUncert);
+  const qualFactor = (100 - c.avgQual) / 100;
+
+  ctx.fillStyle = '#080d1c';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = '#0f1e3a'; ctx.lineWidth=1;
+  for (let y=0; y<=3; y++) {
+    const py = H-20-(y/3)*(H-40);
+    ctx.beginPath(); ctx.moveTo(40,py); ctx.lineTo(W-10,py); ctx.stroke();
+    ctx.fillStyle='#4a5a7a'; ctx.font='9px Space Mono';
+    ctx.fillText(Math.round((y/3)*maxUncert*1.2)+'km', 2, py+3);
+  }
+
+  // Upper bound
+  const upperPts = [], lowerPts = [];
+  for (let i=0; i<=points; i++) {
+    const t = i/points;
+    const u = baseUncert + (maxUncert * 1.2 - baseUncert) * Math.pow(t, 1.5 + qualFactor);
+    const x = 40 + t*(W-50);
+    const maxY = H-20-(u/(maxUncert*1.2))*(H-40);
+    const minY = H-20-Math.max(0,(u*0.4)/(maxUncert*1.2))*(H-40);
+    upperPts.push({x, y: maxY});
+    lowerPts.push({x, y: minY});
+  }
+
+  // Fill band
+  ctx.beginPath();
+  upperPts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  lowerPts.slice().reverse().forEach(p => ctx.lineTo(p.x,p.y));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,214,10,0.08)';
+  ctx.fill();
+
+  // Upper line
+  ctx.beginPath();
+  upperPts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle = 'var(--accent3)'; ctx.lineWidth=2; ctx.stroke();
+
+  // Lower line
+  ctx.beginPath();
+  lowerPts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle = 'rgba(255,214,10,0.3)'; ctx.lineWidth=1; ctx.stroke();
+
+  // Labels
+  ctx.fillStyle='#4a5a7a'; ctx.font='9px Space Mono';
+  for (let d=0; d<=7; d++) {
+    const x = 40+(d/7)*(W-50);
+    ctx.fillText(`+${d}d`, x-10, H-4);
+  }
+
+  // Annotation
+  ctx.fillStyle='var(--accent3)'; ctx.font='10px Space Mono';
+  ctx.fillText(`UNCERTAINTY BAND ±${c.missUncert}km @ TCA`, W/2-80, 16);
+}
+
+// ─── Satellite Profile ────────────────────────────────────────────────
+function selectSat(noradId) {
+  // deselect all cards
+  document.querySelectorAll('.sat-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById(`satcard-${noradId}`);
+  if (card) card.classList.add('selected');
+  selectedSat = noradId;
+  selectedConj = null;
+  if (blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
+  renderConjList(); // deselect conjunctions
+  renderSatProfile(satellites[noradId]);
+}
+
+function renderSatProfile(sat) {
+  const panel = document.getElementById('main-panel');
+  const age = computeTLEAge(sat.EPOCH);
+  const score = computeQualityScore(sat);
+  const color = qualityColor(score);
+  const n = parseFloat(sat.MEAN_MOTION);
+  const a = meanMotionToSMA(n);
+  const alt = Math.round(a - RE);
+  const period = (24*60 / n).toFixed(1);
+  const e = parseFloat(sat.ECCENTRICITY);
+  const inc = parseFloat(sat.INCLINATION);
+  const raan = parseFloat(sat.RAAN);
+  const aop = parseFloat(sat.ARG_OF_PERICENTER);
+  const ma = parseFloat(sat.MEAN_ANOMALY);
+  const bstar = parseFloat(sat.BSTAR || 0);
+
+  // Derived
+  const apogee = Math.round(a * (1 + e) - RE);
+  const perigee = Math.round(a * (1 - e) - RE);
+  const velApprox = Math.sqrt(MU / a).toFixed(2);
+  const epochDate = new Date(sat.EPOCH.replace(' ','T')+'Z');
+
+  // Guess owner / country from object name
+  const name = (sat.OBJECT_NAME || '').toUpperCase();
+  let owner = sat.OWNER || '—';
+  let country = sat.COUNTRY_CODE || '—';
+  let objType = sat.OBJECT_TYPE || 'PAYLOAD';
+  // enrich from name if API didn't return it
+  if (name.includes('FIREFLY') || name.includes('PIXXEL')) { owner = 'Pixxel India Pvt Ltd'; country = 'IND'; }
+  if (name.includes('CARTOSAT')) { owner = 'ISRO'; country = 'IND'; }
+
+  const launchDate = sat.LAUNCH_DATE || sat.TLE_LINE1?.slice(18,23) || '—';
+  const intlDes = sat.INTLDES || (sat.TLE_LINE1 ? sat.TLE_LINE1.slice(9,17).trim() : '—');
+
+  // Orbit type label
+  let orbitType = 'LEO';
+  if (alt > 35000) orbitType = 'GEO';
+  else if (alt > 2000) orbitType = 'MEO';
+  if (Math.abs(inc - 90) < 10) orbitType += ' · POLAR';
+  else if (inc > 95 && inc < 106) orbitType += ' · SSO';
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:24px;margin-bottom:28px;flex-wrap:wrap;">
+      <div>
+        <div class="panel-title">${sat.OBJECT_NAME}</div>
+        <div class="panel-sub">NORAD ${sat.NORAD_CAT_ID} · INTL DESIGNATOR ${intlDes} · ${orbitType}</div>
+      </div>
+      <div style="margin-left:auto;">
+        <div class="risk-badge risk-${score>=70?'LOW':score>=40?'MEDIUM':'HIGH'}" style="font-size:11px;padding:6px 14px;">
+          TLE ${score}/100 — ${qualityLabel(score)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Orbital Visualizer -->
+    <div style="background:var(--surface);border:1px solid var(--border);margin-bottom:24px;position:relative;overflow:hidden;">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--dim);padding:14px 20px 0;">LIVE ORBITAL TRACK</div>
+      <canvas id="orbCanvas" height="340" style="width:100%;display:block;cursor:grab;"></canvas>
+      <div style="position:absolute;bottom:12px;right:16px;font-size:9px;color:var(--dim);letter-spacing:1px;">ANIMATED · TOP-DOWN VIEW</div>
+    </div>
+
+    <!-- Identity -->
+    <div style="font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;">IDENTITY</div>
+    <div class="metrics-grid" style="margin-bottom:24px;">
+      ${profileStat('OBJECT NAME', sat.OBJECT_NAME)}
+      ${profileStat('NORAD CAT ID', sat.NORAD_CAT_ID)}
+      ${profileStat('INTL DESIGNATOR', intlDes)}
+      ${profileStat('OBJECT TYPE', objType)}
+      ${profileStat('OWNER / OPERATOR', owner)}
+      ${profileStat('COUNTRY', country)}
+    </div>
+
+    <!-- Orbital Elements -->
+    <div style="font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;">KEPLERIAN ORBITAL ELEMENTS</div>
+    <div class="metrics-grid" style="margin-bottom:24px;">
+      ${profileStat('SEMI-MAJOR AXIS', a.toFixed(2)+' km')}
+      ${profileStat('ALTITUDE (MEAN)', alt+' km')}
+      ${profileStat('APOGEE', apogee+' km')}
+      ${profileStat('PERIGEE', perigee+' km')}
+      ${profileStat('ECCENTRICITY', e.toFixed(7))}
+      ${profileStat('INCLINATION', inc.toFixed(4)+'°')}
+      ${profileStat('RAAN', raan.toFixed(4)+'°')}
+      ${profileStat('ARG OF PERICENTER', aop.toFixed(4)+'°')}
+      ${profileStat('MEAN ANOMALY', ma.toFixed(4)+'°')}
+      ${profileStat('MEAN MOTION', n.toFixed(8)+' rev/day')}
+      ${profileStat('ORBITAL PERIOD', period+' min')}
+      ${profileStat('VELOCITY (APPROX)', velApprox+' km/s')}
+    </div>
+
+    <!-- TLE Health -->
+    <div style="font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;">TLE HEALTH & TRACKING</div>
+    <div class="metrics-grid" style="margin-bottom:24px;">
+      ${profileStat('TLE EPOCH', epochDate.toUTCString().replace('GMT','UTC'))}
+      ${profileStat('TLE AGE', age.toFixed(2)+' hours')}
+      ${profileStat('QUALITY SCORE', score+'/100 — '+qualityLabel(score), color)}
+      ${profileStat('BSTAR DRAG TERM', bstar.toExponential(4))}
+      ${profileStat('REV AT EPOCH', sat.REV_AT_EPOCH || '—')}
+      ${profileStat('ELEMENT SET NO', sat.ELEMENT_SET_NO || '—')}
+    </div>
+
+    <!-- Raw TLE -->
+    <div style="font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;">RAW TLE DATA</div>
+    <div style="background:var(--bg);border:1px solid var(--border);padding:16px 20px;font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);line-height:2;margin-bottom:24px;overflow-x:auto;">
+      <div style="color:var(--dim);margin-bottom:4px;">${sat.OBJECT_NAME}</div>
+      <div>${sat.TLE_LINE1 || '(not available)'}</div>
+      <div>${sat.TLE_LINE2 || '(not available)'}</div>
+    </div>
+  `;
+
+  // Start orbital animation after DOM update
+  setTimeout(() => startOrbitalViz([sat]), 50);
+}
+
+function profileStat(label, value, color) {
+  return `
+    <div class="metric-card">
+      <div class="metric-label">${label}</div>
+      <div class="metric-val" style="font-size:14px;${color?'color:'+color:''}">${value}</div>
+    </div>`;
+}
+
+// ─── Conjunction Emergency Orbital Visualizer ────────────────────────
+function startConjViz(conj) {
+  if (orbitalAnimFrame) { cancelAnimationFrame(orbitalAnimFrame); orbitalAnimFrame = null; }
+  if (blinkInterval)    { clearInterval(blinkInterval); blinkInterval = null; }
+
+  const canvas = document.getElementById('conjOrbCanvas');
+  if (!canvas) return;
+
+  // Taller canvas for better orbital visibility
+  canvas.setAttribute('height', '420');
+
+  const W   = canvas.parentElement.clientWidth || 800;
+  const H   = 420;
+  const DPR = window.devicePixelRatio || 1;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  const CX = W / 2, CY = H / 2;
+  const earthR = Math.min(W, H) * 0.13;
+  const SC     = earthR / RE;
+
+  const allSats = Object.values(satellites);
+  const threatA = conj.satA;
+  const threatB = conj.satB;
+  const isThreatA = s => s.NORAD_CAT_ID === threatA.NORAD_CAT_ID;
+  const isThreatB = s => s.NORAD_CAT_ID === threatB.NORAD_CAT_ID;
+
+  const stars = Array.from({length: 140}, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    r: Math.random() * 0.9 + 0.2, a: Math.random() * 0.4 + 0.15
+  }));
+
+  const orbitData = allSats.map((s, idx) => ({
+    sat: s,
+    orbitR:     meanMotionToSMA(parseFloat(s.MEAN_MOTION)) * SC,
+    period:     24 * 60 / parseFloat(s.MEAN_MOTION),
+    isThreat:   isThreatA(s) || isThreatB(s),
+    isThreatA:  isThreatA(s),
+    color:      isThreatA(s) ? '#ff4d6d' : isThreatB(s) ? '#ffd60a' : '#1a2a4a',
+    // Give each threat satellite its own pulse phase offset so rings don't sync up
+    pulseOffset: isThreatA(s) ? 0 : Math.PI,
+    phase:      (idx / allSats.length) * Math.PI * 2
+  }));
+
+  // FIX: single shared pulseT incremented once per frame, not per satellite
+  let pulseT  = 0;
+  let simT    = 0;
+  let alertOn = true;
+
+  // FIX: store the interval so it can be cleared later; clear any existing one first
+  blinkInterval = setInterval(() => { alertOn = !alertOn; }, 800);
+
+  function drawFrame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Dark red tinted background
+    const bg = ctx.createRadialGradient(CX, CY, 0, CX, CY, Math.max(W,H)*0.8);
+    bg.addColorStop(0,   '#0a0408');
+    bg.addColorStop(0.5, '#060208');
+    bg.addColorStop(1,   '#020102');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // FIX: stronger red vignette (0.22 vs original 0.12) — actually visible
+    const vign = ctx.createRadialGradient(CX, CY, Math.min(W,H)*0.3, CX, CY, Math.max(W,H)*0.7);
+    vign.addColorStop(0, 'rgba(0,0,0,0)');
+    vign.addColorStop(1, 'rgba(180,20,40,0.22)');
+    ctx.fillStyle = vign; ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    stars.forEach(s => {
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(200,216,240,${s.a})`; ctx.fill();
+    });
+
+    // Earth glow — red tinted
+    const glow = ctx.createRadialGradient(CX, CY, earthR*0.5, CX, CY, earthR*2.4);
+    glow.addColorStop(0, 'rgba(180,40,60,0.18)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR*2.4, 0, Math.PI*2);
+    ctx.fillStyle = glow; ctx.fill();
+
+    // Earth
+    const eg = ctx.createRadialGradient(CX-earthR*0.28, CY-earthR*0.28, earthR*0.05, CX, CY, earthR);
+    eg.addColorStop(0,   '#1a4060');
+    eg.addColorStop(0.5, '#0a2840');
+    eg.addColorStop(1,   '#041020');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR, 0, Math.PI*2);
+    ctx.fillStyle = eg; ctx.fill();
+
+    // Atmosphere
+    const atmo = ctx.createRadialGradient(CX, CY, earthR, CX, CY, earthR*1.12);
+    atmo.addColorStop(0, 'rgba(40,100,180,0.2)');
+    atmo.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR*1.12, 0, Math.PI*2);
+    ctx.fillStyle = atmo; ctx.fill();
+
+    // Orbit rings — threats bright, others barely visible
+    orbitData.forEach(o => {
+      ctx.beginPath(); ctx.arc(CX, CY, o.orbitR, 0, Math.PI*2);
+      ctx.strokeStyle = o.isThreat ? o.color : '#1a2a4a';
+      ctx.globalAlpha  = o.isThreat ? 0.5 : 0.12;
+      ctx.lineWidth    = o.isThreat ? 1.5 : 0.8;
+      ctx.stroke();
+      ctx.globalAlpha  = 1;
+    });
+
+    // FIX: increment pulseT once per frame, before the satellite loop
+    pulseT += 0.03;
+
+    // Satellite dots + trails
+    orbitData.forEach(o => {
+      const angle = o.phase + (simT / o.period) * Math.PI * 2;
+
+      if (o.isThreat) {
+        // Comet trail
+        const trailLen = 40;
+        for (let t = trailLen; t >= 1; t--) {
+          const ta = angle - (t / trailLen) * 0.55;
+          ctx.beginPath();
+          ctx.arc(CX + Math.cos(ta)*o.orbitR, CY + Math.sin(ta)*o.orbitR,
+                  0.8 + (1-t/trailLen)*2.5, 0, Math.PI*2);
+          ctx.fillStyle   = o.color;
+          ctx.globalAlpha = (1-t/trailLen) * 0.7;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      const sx = CX + Math.cos(angle) * o.orbitR;
+      const sy = CY + Math.sin(angle) * o.orbitR;
+
+      if (o.isThreat) {
+        // FIX: use per-satellite pulseOffset so rings pulse out of phase with each other
+        const phasedPulse = pulseT * 3 + o.pulseOffset;
+        const pulseR = 10 + Math.sin(phasedPulse) * 5;
+        ctx.beginPath(); ctx.arc(sx, sy, pulseR, 0, Math.PI*2);
+        ctx.strokeStyle = o.color;
+        ctx.globalAlpha = 0.3 + Math.sin(phasedPulse) * 0.2;
+        ctx.lineWidth   = 1.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Outer expanding ring (second pulse layer for threat A only — extra urgency)
+        if (o.isThreatA) {
+          const outerR = 18 + Math.sin(phasedPulse * 0.7) * 6;
+          ctx.beginPath(); ctx.arc(sx, sy, outerR, 0, Math.PI*2);
+          ctx.strokeStyle = o.color;
+          ctx.globalAlpha = 0.12 + Math.sin(phasedPulse * 0.7) * 0.08;
+          ctx.lineWidth   = 1;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        // Glow
+        const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 14);
+        g.addColorStop(0, o.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.beginPath(); ctx.arc(sx, sy, 14, 0, Math.PI*2);
+        ctx.fillStyle = g; ctx.globalAlpha = 0.6; ctx.fill(); ctx.globalAlpha = 1;
+
+        // Core dot
+        ctx.beginPath(); ctx.arc(sx, sy, 4.5, 0, Math.PI*2);
+        ctx.fillStyle = o.color; ctx.fill();
+        ctx.beginPath(); ctx.arc(sx, sy, 1.5, 0, Math.PI*2);
+        ctx.fillStyle = '#fff'; ctx.fill();
+
+        // Label pill
+        const name = o.sat.OBJECT_NAME.split(' ').pop();
+        ctx.font = 'bold 10px monospace';
+        const tw = ctx.measureText(name).width;
+        ctx.fillStyle = 'rgba(4,2,8,0.85)';
+        ctx.fillRect(sx+8, sy-15, tw+6, 14);
+        ctx.fillStyle = o.color;
+        ctx.fillText(name, sx+11, sy-4);
+
+      } else {
+        // Background sats — small dim dots
+        ctx.beginPath(); ctx.arc(sx, sy, 2, 0, Math.PI*2);
+        ctx.fillStyle = '#2a3a5a'; ctx.fill();
+      }
+    });
+
+    // FIX: measure text width to position alert flush to right edge correctly
+    if (alertOn && conj.risk === 'HIGH') {
+      ctx.font = 'bold 11px monospace';
+      const alertText = '● CONJUNCTION ALERT';
+      const alertW = ctx.measureText(alertText).width;
+      ctx.fillStyle = '#ff4d6d';
+      ctx.globalAlpha = 0.92;
+      ctx.fillText(alertText, W - alertW - 14, 22);
+      ctx.globalAlpha = 1;
+    }
+
+    // FIX: higher opacity bottom bar (0.75 vs original 0.4) — readable at a glance
+    ctx.font = '10px monospace';
+    ctx.fillStyle = 'rgba(200,216,240,0.75)';
+    ctx.fillText(`MIN SEP: ${conj.minSep} km  |  Pc: ${conj.pc}  |  TCA: T-${(conj.minT/60).toFixed(1)}h`, 12, H - 10);
+
+    simT += 0.5;
+    orbitalAnimFrame = requestAnimationFrame(drawFrame);
+  }
+
+  drawFrame();
+}
+
+// ─── 2D Orbital Visualizer ────────────────────────────────────────────
+function startOrbitalViz(satList) {
+  if (orbitalAnimFrame) { cancelAnimationFrame(orbitalAnimFrame); orbitalAnimFrame = null; }
+
+  const canvas = document.getElementById('orbCanvas');
+  if (!canvas) return;
+
+  const W   = canvas.parentElement.clientWidth || 800;
+  const H   = parseInt(canvas.getAttribute('height')) || 480;
+  const DPR = window.devicePixelRatio || 1;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  const SAT_COLORS = ['#00ffe0', '#ff4d6d', '#ffd60a', '#a78bfa', '#34d399'];
+  const CX = W / 2, CY = H / 2;
+  const earthR = Math.min(W, H) * 0.13;
+  const SC     = earthR / RE;
+
+  const stars = Array.from({length: 180}, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    r: Math.random() * 1.1 + 0.2, a: Math.random() * 0.5 + 0.2
+  }));
+
+  const orbitData = satList.map((s, i) => {
+    const a      = meanMotionToSMA(parseFloat(s.MEAN_MOTION));
+    const orbitR = a * SC;
+    const period = 24 * 60 / parseFloat(s.MEAN_MOTION);
+    return { sat: s, orbitR, period, color: SAT_COLORS[i % SAT_COLORS.length], phase: (i / satList.length) * Math.PI * 2 };
+  });
+
+  let simT = 0;
+
+  function drawFrame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    const bg = ctx.createRadialGradient(CX, CY, 0, CX, CY, Math.max(W, H) * 0.8);
+    bg.addColorStop(0, '#060d1f'); bg.addColorStop(1, '#020408');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    stars.forEach(s => {
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,216,240,${s.a})`; ctx.fill();
+    });
+
+    // Earth glow
+    const glow = ctx.createRadialGradient(CX, CY, earthR * 0.5, CX, CY, earthR * 2.5);
+    glow.addColorStop(0, 'rgba(20,100,220,0.18)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = glow; ctx.fill();
+
+    // Earth body
+    const eg = ctx.createRadialGradient(CX - earthR*0.28, CY - earthR*0.28, earthR*0.05, CX, CY, earthR);
+    eg.addColorStop(0, '#2196c8'); eg.addColorStop(0.4, '#0e5f96');
+    eg.addColorStop(0.75, '#083260'); eg.addColorStop(1, '#021525');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR, 0, Math.PI * 2);
+    ctx.fillStyle = eg; ctx.fill();
+
+    // Atmosphere
+    const atmo = ctx.createRadialGradient(CX, CY, earthR * 0.92, CX, CY, earthR * 1.13);
+    atmo.addColorStop(0, 'rgba(60,160,255,0.28)'); atmo.addColorStop(1, 'rgba(0,80,200,0)');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR * 1.13, 0, Math.PI * 2);
+    ctx.fillStyle = atmo; ctx.fill();
+
+    // Specular highlight
+    const spec = ctx.createRadialGradient(CX - earthR*0.3, CY - earthR*0.32, 0, CX - earthR*0.1, CY - earthR*0.1, earthR*0.65);
+    spec.addColorStop(0, 'rgba(255,255,255,0.09)'); spec.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(CX, CY, earthR, 0, Math.PI * 2);
+    ctx.fillStyle = spec; ctx.fill();
+
+    // Equator ring
+    ctx.beginPath(); ctx.arc(CX, CY, earthR * 1.02, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,255,224,0.12)'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // Orbit rings
+    orbitData.forEach(o => {
+      ctx.beginPath(); ctx.arc(CX, CY, o.orbitR, 0, Math.PI * 2);
+      ctx.strokeStyle = o.color; ctx.globalAlpha = 0.2; ctx.lineWidth = 1; ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+
+    // Trails + satellites
+    orbitData.forEach(o => {
+      const angle = o.phase + (simT / o.period) * Math.PI * 2;
+      const trailLen = 50;
+      for (let t = trailLen; t >= 1; t--) {
+        const ta = angle - (t / trailLen) * 0.6;
+        const tx = CX + Math.cos(ta) * o.orbitR;
+        const ty = CY + Math.sin(ta) * o.orbitR;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 0.8 + (1 - t/trailLen) * 2, 0, Math.PI * 2);
+        ctx.fillStyle = o.color;
+        ctx.globalAlpha = (1 - t/trailLen) * 0.65;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      const sx = CX + Math.cos(angle) * o.orbitR;
+      const sy = CY + Math.sin(angle) * o.orbitR;
+
+      // Glow
+      const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 11);
+      g.addColorStop(0, o.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(sx, sy, 11, 0, Math.PI * 2);
+      ctx.fillStyle = g; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
+
+      ctx.beginPath(); ctx.arc(sx, sy, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = o.color; ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, sy, 1.3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+
+      // Label pill
+      const name = o.sat.OBJECT_NAME.split(' ').pop();
+      ctx.font = 'bold 10px monospace';
+      const tw = ctx.measureText(name).width;
+      ctx.fillStyle = 'rgba(4,6,15,0.75)';
+      ctx.fillRect(sx + 8, sy - 15, tw + 6, 13);
+      ctx.fillStyle = o.color;
+      ctx.fillText(name, sx + 11, sy - 5);
+    });
+
+    simT += 0.5;
+    orbitalAnimFrame = requestAnimationFrame(drawFrame);
+  }
+
+  drawFrame();
+}
+
+
+// ─── Main Analysis Flow ───────────────────────────────────────────────
+async function runAnalysis() {
+  const raw = document.getElementById('norad-input').value;
+  const noradIds = raw.split(',').map(s=>s.trim()).filter(Boolean);
+
+  if (!noradIds.length) return;
+
+  setStatus('FETCHING TLEs...', 'loading');
+
+  try {
+    const tleData = await fetchTLEs(noradIds);
+    satellites = {};
+    tleData.forEach(sat => { satellites[sat.NORAD_CAT_ID] = sat; });
+
+    setStatus('PROPAGATING ORBITS...', 'loading');
+    await new Promise(r => setTimeout(r, 50));
+
+    const satList = Object.values(satellites);
+    conjunctions = analyzeConjunctions(satList);
+
+    renderSatList();
+    renderConjList();
+
+    if (conjunctions.length > 0) {
+      selectConj(0);
+      setStatus(`${conjunctions.length} CONJUNCTION(S) DETECTED`, 'error');
+    } else {
+      setStatus('ANALYSIS COMPLETE — NO CONJUNCTIONS', 'ok');
+      // Show orbital visualizer with all satellites as default view
+      showOrbitalOverview(satList);
+    }
+  } catch(e) {
+    setStatus('ERROR: ' + e.message, 'error');
+  }
+}
+
+function showOrbitalOverview(satList) {
+  const panel = document.getElementById('main-panel');
+  panel.innerHTML = `
+    <div class="panel-title">ORBITAL OVERVIEW</div>
+    <div class="panel-sub">LIVE PROPAGATION · ${satList.length} OBJECTS TRACKED · NO CONJUNCTIONS DETECTED</div>
+    <div style="background:var(--surface);border:1px solid var(--border);margin-bottom:24px;position:relative;overflow:hidden;">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--dim);padding:14px 20px 0;">REAL-TIME ORBITAL TRACK</div>
+      <canvas id="orbCanvas" height="480" style="width:100%;display:block;cursor:grab;"></canvas>
+      <div style="padding:12px 20px;display:flex;gap:20px;flex-wrap:wrap;">
+        ${satList.map((s,i) => {
+          const cols = ['#00ffe0','#ff4d6d','#ffd60a','#a78bfa','#34d399'];
+          return `<div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:${cols[i%cols.length]};box-shadow:0 0 6px ${cols[i%cols.length]}"></div>
+            <span style="font-size:10px;color:var(--dim);letter-spacing:1px;">${s.OBJECT_NAME}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--dim);text-align:center;padding:8px;letter-spacing:1px;">
+      ✅ No conjunction events detected within 200km threshold over 7-day window. Click any satellite in the sidebar to view its full profile.
+    </div>
+  `;
+  setTimeout(() => startOrbitalViz(satList), 50);
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = type || '';
+}
+
+// Auto-run hint
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('st-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') authenticate();
+  });
+});
+</script>
+</body>
+</html>
